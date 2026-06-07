@@ -1,40 +1,52 @@
+"""
+Main Game Module: Grape Odyssey
+Handles the main game loop, user menus, and minigames (Gambling/Coin Flip).
+"""
+
 import events
-import sys, time, builtins
+from events import type_print  # <-- Imports the retro typing effect for narrative beats
+import sys
 import random
 
-
+# Global state variables for the player's progress
 grapes = 0
 day = 1
 
-original_print = builtins.print
-def slow_print(*args, sep=' ', end='\n', delay=0.03):
-    text = sep.join(str(a) for a in args) + end
-    for ch in text:
-        sys.stdout.write(ch)
-        sys.stdout.flush()
-        time.sleep(delay)
-
-builtins.print = slow_print
-
-
-class options:
+class Options:
+    """
+    A class to manage and display numbered menu options to the user.
+    """
     def __init__(self, array):
+        """
+        Initializes the Options object.
+        WHY: Encapsulating the list inside an object allows us to easily build
+        reusable menu behaviors (like dynamic lengths) without rewriting loop logic.
+        """
         self.array = array
 
-    def displayoptions(self):
+    def display_options(self):
+        """
+        Prints the available options to the terminal sequentially.
+        WHY: Provides a clean, standardized UI format every time the user needs to make a choice.
+        NOTE: This uses standard print() so the UI renders instantly without the typing delay.
+        """
         print(f'Please pick an option from 1 to {len(self.array)}')
-        for i in self.array:
-            print(i)
+        for item in self.array:
+            print(item)
         print()
 
     def length(self):
+        """
+        Returns the total number of options available.
+        WHY: Used by the input validator to ensure the user doesn't pick a number out of bounds.
+        """
         return len(self.array)
-    
-    def append(self, value):
-        self.array.append(f'({self.length() + 1}) {value}')
 
 
-actions = {
+# Execution mapping table
+# WHY: A dictionary mapping replaces massive 'if/elif/else' blocks. It allows O(1) 
+# instantaneous lookup to execute the correct event function based on user input.
+ACTIONS = {
     1: events.VineyardEvents,
     2: events.MarketEvents,
     3: events.TownEvents,
@@ -42,129 +54,175 @@ actions = {
     5: events.MountainEvents
 }
 
-def selectionloop(array):
-    array.displayoptions()
-
+def selection_loop(options_obj):
+    """
+    Handles user input for the main menu, ensuring valid selection.
+    
+    Args:
+        options_obj (Options): The initialized menu object.
+        
+    Returns:
+        int: A valid integer representing the user's choice.
+    """
+    options_obj.display_options()
+    limit = options_obj.length()
+    
     while True:
         x = input("Your selection: ")
         try:
-            x = int(x)
-            if(x > Array.length()):
-                print("Invalid selection")
-                continue
-            return x
-        except:
+            x = int(x) # Attempt to cast string to integer
+            
+            # Check if the selection is within valid menu boundaries
+            if 1 <= x <= limit:
+                # Temporary guardrail for unfinished features
+                if 1 < x < 5:
+                    print("Not yet implemented, please pick 1 or 5")
+                    continue
+                return x # Return valid selection to the main loop
+            
+            print("Invalid selection")
+        except ValueError:
+            # Catches cases where the user types letters instead of numbers
             print("Invalid selection")
 
-def gambling():
-    global grapes
-    print("💰 Welcome to the Vineyard Casino! Time to gamble your grapes.")
+def gambling(current_grapes):
+    """
+    A casino minigame allowing the player to risk grapes for a chance to multiply them.
     
-    while grapes > 1:  # keep gambling as long as they have grapes
-        print(f"\nYou currently have {grapes} grapes.")
+    Args:
+        current_grapes (int): The player's current grape count.
+        
+    Returns:
+        int: The updated grape count after winning/losing.
+    """
+    type_print("💰 Welcome to the Vineyard Casino!")
+    
+    # Keep gambling as long as they have grapes to bet (minimum 2 to make a meaningful bet)
+    while current_grapes > 1:
+        type_print(f"\nYou currently have {current_grapes} grapes.")
         
         # Ask if they want to continue
         cont = input("Do you want to gamble? (yes/no): ").strip().lower()
-        if cont not in ["yes", "y"]:
-            print("You leave the casino with your grapes safe... for now.")
-            break
+        if cont not in ("yes", "y"):
+            type_print("You leave the casino with your grapes safe.")
+            break # Exit the casino loop
         
         # Get a valid bet from the user
         while True:
             try:
-                max_bet = grapes
-                bet = int(input(f"How many grapes do you want to bet? (1-{max_bet}): "))
-                if 1 <= bet <= max_bet:
-                    break
-                else:
-                    print(f"Invalid bet! Enter a number between 1 and {max_bet}.")
+                bet = int(input(f"How many grapes do you want to bet? (1-{current_grapes}): "))
+                if 1 <= bet <= current_grapes:
+                    break # Valid bet secured, exit validation loop
+                print(f"Invalid bet! Enter a number between 1 and {current_grapes}.")
             except ValueError:
                 print("Please enter a valid integer.")
         
-        # Random outcome
-        outcome = random.choices(
-            ["win", "lose", "jackpot"], 
-            weights=[50, 40, 10],  # 50% win, 40% lose, 10% jackpot
-            k=1
-        )[0]
-        
-        # Apply outcome
+        # Establish casino weights: 40% win, 50% lose, 10% jackpot
+        # WHY: random.choices allows us to skew probabilities easily without complex math.
+        outcome = random.choices(["win", "lose", "jackpot"], weights=[40,50,10], k=1)
+        outcome = outcome[0]
+        # Apply the randomized outcome to the player's wallet using the typing effect
         if outcome == "win":
-            grapes += bet
-            print(f"🎉 You win! You gain {bet} grapes. Total grapes: {grapes}")
+            current_grapes += bet
+            type_print(f"🎉 You win! You gain {bet} grapes. Total: {current_grapes}")
         elif outcome == "lose":
-            grapes -= bet
-            print(f"😢 You lose {bet} grapes. Total grapes: {grapes}")
-        else:  # jackpot
+            current_grapes -= bet
+            type_print(f"😢 You lose {bet} grapes. Total: {current_grapes}")
+        else: # jackpot condition
             jackpot = bet * 5
-            grapes += jackpot
-            print(f"💥 JACKPOT! You win {jackpot} grapes! Total grapes: {grapes}")
-    
-    if grapes <= 1:
-        print("🍇 You don’t have enough grapes to gamble anymore. Casino closed for you.")
+            current_grapes += jackpot
+            type_print(f"💥 JACKPOT! You win {jackpot} grapes! Total: {current_grapes}")
+            
+    if current_grapes <= 1:
+        type_print("🍇 Casino closed for you.")
+        
+    # WHY: We must return the local variable back to the main loop to overwrite the global state.
+    return current_grapes
 
-def starter():
-    global grapes
+def starter(current_grapes):
+    """
+    A 50/50 coin flip minigame triggered when the player hits 0 grapes.
+    
+    Args:
+        current_grapes (int): The player's grape count (usually 0).
+        
+    Returns:
+        int: The updated grape count.
+    """
     while True:
         guess = input("Enter 'heads' or 'tails': ").strip().lower()
-        if guess in ["heads", "tails"]:
+        if guess in ("heads", "tails"):
             break
-        print("Invalid input. Please enter 'heads' or 'tails'.")
+        print("Invalid input.")
 
-    # Flip the coin
+    # Flip the coin natively using random.choice
     flip = random.choice(["heads", "tails"])
-    print(f"The coin landed on {flip}!")
+    type_print(f"The coin landed on {flip}!")
 
     # Determine result
     if guess == flip:
-        grapes += 10
-        print("Looks like we got a winner, heres 10 grapes")
+        current_grapes += 10
+        type_print("Winner! Here are 10 grapes.")
     else:
-        print("Looks like youll have to try again the next time I see ya.")
+        type_print("Better luck next time.")
+        
+    return current_grapes
 
 if __name__ == "__main__":
-    print("Welcome to Grape Odyssey! Your goal is to collect 30 grapes before day 7! What will happen, Noone knows!")
-    print(f'You currently have {grapes} grapes\n')
-    Array = options(["(1) Pick Grapes in Vineyard", "(2) Travel to the Market", "(3) Travel to Town", "(4) Travel to the Bar", "(5) Travel to the Mountains"])
+    # Boot sequence and introduction (Uses narrative typing effect)
+    type_print("Welcome to Grape Odyssey! Collect 30 grapes before day 7!")
+    type_print(f'You currently have {grapes} grapes\n')
+    
+    # Initialize the main menu object
+    menu = Options(["(1) Pick Grapes in Vineyard", "(2) Travel to the Market", "(3) Travel to Town", "(4) Travel to the Bar", "(5) Travel to the Mountains"])
 
+    # Core Game Loop: Runs until the time limit (day 8) is reached
     while day < 8:
-        print(f'It is currently day {day}')
-        selection = selectionloop(Array)
-        grapes = actions[selection](grapes)
-        print(f'You ended day {day} with {grapes} grapes')
+        type_print(f'\nIt is currently day {day}')
+        
+        # Retrieve the user's destination
+        selection = selection_loop(menu)
+        
+        # Pull execution tracking pointers safely from configuration dict
+        # WHY: .get() prevents KeyError crashes if something unexpected slips through.
+        action_func = ACTIONS.get(selection)
+        if action_func:
+            # Execute the targeted location function, passing and updating the grape count
+            grapes = action_func(grapes)
+            
+        type_print(f'You ended day {day} with {grapes} grapes')
+        
+        # --- Pity Mechanic (Coin Flip) ---
         if grapes == 0:
-            print("A strange man approaches you with a basket of grapes")
-            print("Strange Man: Your looking like you could use some help. Lets play a game.")
-            print("Ill flip this here coin, if you call it correctly ill give you these grapes")
+            type_print("A strange man approaches you with a basket of grapes")
+            type_print("Strange Man: You're looking like you could use some help. Let's play a game.")
+            type_print("I'll flip this here coin, if you call it correctly I'll give you these grapes")
+            
             w = input("Sound like a deal? (yes/no): ").strip().lower()
-            while w not in ["yes", "no"]:
-                print("Invalid input. Please enter 'yes' or 'no'.")
+            while w not in ("yes", "no"):
                 w = input("Sound like a deal? (yes/no): ").strip().lower()
-
-            # Take action based on choice
+            
             if w == "yes":
-                starter()
-                print(f'You ended day {day} with {grapes} grapes after gambling')
+                grapes = starter(grapes) # Update grapes with winnings
             elif w == "no":
-                print("You decided to not risk getting into risky business")
-        if grapes > 9:#gambling
+                type_print("You decided to not risk getting into risky business")
 
-            print("Looking at your sizable harvest you think you can try your luck")
+        # --- Casino Trigger ---
+        if grapes > 9:
+            type_print("Looking at your sizable harvest you think you can try your luck")
             w = input("Head to the grape casino? (yes/no): ").strip().lower()
-            while w not in ["yes", "no"]:
-                print("Invalid input. Please enter 'yes' or 'no'.")
+            while w not in ("yes", "no"):
                 w = input("Head to the grape casino? (yes/no): ").strip().lower()
-            if(w == "yes"):
-                gambling()
-                print(f'You ended day {day} with {grapes} grapes after gambling')
+            
+            if w == "yes":
+                grapes = gambling(grapes) # Update grapes with winnings/losses
             else:
-                print("You decided you werent on a hot streak today and headed home")
+                type_print("You decided you weren't on a hot streak today and headed home")
 
-        w = input("Press enter to continue to the next day")
-        original_print("--------------------------------------------------------------")
-        day = day + 1
+        # Wait for the user to acknowledge the day's end before clearing the terminal conceptually
+        input("\nPress enter to continue to the next day")
+        print("--------------------------------------------------------------")
+        day += 1
 
-    if grapes >= 30:
-        print("congrats")
-    else:
-        print("You have failed to gaing the required amount of grapes in the alloted time")
+    # End condition evaluation
+    type_print("Congrats" if grapes >= 30 else "You have failed to gain the required amount of grapes in the allotted time.")
