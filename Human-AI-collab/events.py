@@ -164,7 +164,7 @@ def MountainEvents(grapes):
             type_print("A pack of wolves surrounds you!")
             
             # Determine survival using weighted choices (60% escape, 40% death)
-            if random.choices(["escape", "death"], weights=[60,40]) == "death":
+            if (random.choices(["escape", "death"], weights=[60,40]))[0] == "death":
                 # sys.exit immediately halts the script. Used here as a hard 'Game Over' state.
                 sys.exit("😭 The wolves overwhelm you. GAME OVER")
             else:
@@ -195,7 +195,7 @@ def MountainEvents(grapes):
             
         elif event == "avalanche":
             # 50/50 survival probability
-            if random.choices(["survive", "death"], weights=[50,50]) == "death":
+            if (random.choices(["survive", "death"], weights=[50,50]))[0] == "death":
                 sys.exit("💀 An avalanche crushes you! GAME OVER")
             else:
                 grapes += 5
@@ -213,13 +213,13 @@ def MountainEvents(grapes):
 
     if choice2 == "swim":
         # Swimming is highly dangerous: 70% death rate
-        if random.choices(["success", "death"], weights=[30,70]) == "death":
+        if (random.choices(["success", "death"], weights=[30,70]))[0] == "death":
             sys.exit("😭 The current sweeps you away. GAME OVER")
         else:
             type_print("💪 You swim across successfully. Your grapes are wet but safe!")
     else:
         # Rafting is safer: 40% capsize rate, but no death penalty
-        if random.choices(["success", "capsize"], weights=[60,40]) == "capsize":
+        if (random.choices(["success", "capsize"], weights=[60,40]))[0] == "capsize":
             lost = min(grapes, random.randint(3, 8))
             grapes -= lost
             type_print(f"Your raft capsizes! You lose {lost} grapes. Remaining: {grapes}")
